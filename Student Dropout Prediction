@@ -1,0 +1,121 @@
+
+# Student Dropout Prediction using Logistic Regression
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    classification_report,
+    roc_curve,
+    roc_auc_score
+)
+
+# 1. Create sample dataset
+data = pd.DataFrame({
+    "Attendance": [
+        90, 85, 40, 35, 80, 30, 95, 45, 75, 25,
+        88, 38, 92, 42, 78, 33, 86, 48, 82, 28
+    ],
+    "Marks": [
+        85, 80, 35, 30, 75, 25, 90, 40, 70, 20,
+        82, 32, 88, 38, 72, 28, 84, 43, 77, 22
+    ],
+    "Dropout": [
+        0, 0, 1, 1, 0, 1, 0, 1, 0, 1,
+        0, 1, 0, 1, 0, 1, 0, 1, 0, 1
+    ]
+})
+
+print("Dataset Preview:")
+print(data.head())
+
+# 2. Separate features and target
+X = data[["Attendance", "Marks"]]
+y = data["Dropout"]
+
+# 3. Split dataset into training and testing
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
+
+# 4. Train Logistic Regression model
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# 5. Make predictions
+y_pred = model.predict(X_test)
+y_prob = model.predict_proba(X_test)[:, 1]
+
+# 6. Evaluate model
+print("\nModel Accuracy:",
+      round(accuracy_score(y_test, y_pred) * 100, 2), "%")
+
+cm = confusion_matrix(y_test, y_pred, labels=[0, 1])
+print("\nConfusion Matrix:")
+print(cm)
+
+print("\nClassification Report:")
+print(classification_report(
+    y_test, y_pred,
+    labels=[0, 1],
+    target_names=["Not Dropout", "Dropout"],
+    zero_division=0
+))
+
+# 7. Plot confusion matrix
+plt.figure(figsize=(6, 4))
+sns.heatmap(
+    cm,
+    annot=True,
+    fmt="d",
+    cmap="Blues",
+    xticklabels=["Not Dropout", "Dropout"],
+    yticklabels=["Not Dropout", "Dropout"]
+)
+plt.title("Student Dropout Prediction")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.tight_layout()
+plt.show()
+
+# 8. Plot ROC curve
+auc = roc_auc_score(y_test, y_prob)
+fpr, tpr, thresholds = roc_curve(y_test, y_prob)
+
+plt.figure(figsize=(6, 4))
+plt.plot(fpr, tpr, label=f"ROC-AUC = {auc:.2f}")
+plt.plot([0, 1], [0, 1], "k--")
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("ROC Curve")
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print("ROC-AUC Score:", round(auc, 4))
+
+# 9. Predict for a new student
+new_student = pd.DataFrame({
+    "Attendance": [50],
+    "Marks": [45]
+})
+
+prediction = model.predict(new_student)[0]
+probability = model.predict_proba(new_student)[0][1]
+
+print("\nNew Student Prediction:")
+if prediction == 1:
+    print("Predicted Status: At Risk of Dropout")
+else:
+    print("Predicted Status: Not At Risk of Dropout")
+
+print("Predicted Dropout Probability:",
+      round(probability * 100, 2), "%")
